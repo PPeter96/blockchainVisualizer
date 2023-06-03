@@ -48,3 +48,20 @@
 .visualize-button:hover {
   background-color: #2779bd;
 }
+
+.node {
+  position: relative;
+  display: inline-block;
+  padding: 8px;
+  background-color: #3490dc;
+  color: #fff;
+  border-radius: 4px;
+  box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.25);
+}
+
+.node-text {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}

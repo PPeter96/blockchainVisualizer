@@ -9,7 +9,6 @@ import Konva from 'konva';
     { provide: 'Konva', useValue: Konva } // Provide Konva as a value for dependency injection
   ]
 })
-
 export class Node {
   private group: Konva.Group;
 
@@ -19,8 +18,7 @@ export class Node {
     // ... rest of the code
   }
 
-  weiFormat(amount: string): string{
-
+  weiFormat(amount: string): string {
     const amountInWei = parseInt(amount);
     const amountInEther = amountInWei / 1e18; // Convert wei to ether
     const formattedAmount = amountInEther.toFixed(4); // Format as a decimal with 4 decimal places
@@ -32,41 +30,64 @@ export class Node {
     const stageWidth = window.innerWidth;
     const stageHeight = window.innerHeight;
 
+    const rectWidth = 160;
+    const rectHeight = 80;
+    const rectRadius = 10;
+
+    const rect = new Konva.Rect({
+      x: -rectWidth / 2,
+      y: -rectHeight / 2,
+      width: rectWidth,
+      height: rectHeight,
+      fill: 'white',
+      stroke: 'black',
+      strokeWidth: 1,
+      cornerRadius: rectRadius,
+      shadowColor: 'rgba(0, 0, 0, 0.3)',
+      shadowBlur: 5,
+      shadowOffset: { x: 0, y: 2 },
+      shadowOpacity: 0.7,
+    });
 
     const fromText = new Konva.Text({
       text: `From: ${from}`,
       fontSize: 12,
       fill: 'black',
-      offsetY: -20,
+      offsetY: -rectHeight / 2 + 10,
+      align: 'center',
     });
 
     const toText = new Konva.Text({
       text: `To: ${to}`,
       fontSize: 12,
       fill: 'black',
-      offsetY: -10,
+      offsetY: -rectHeight / 2 + 30,
+      align: 'center',
     });
 
     const amountText = new Konva.Text({
       text: `Amount: ${this.weiFormat(amount)} ETH`,
       fontSize: 12,
       fill: 'black',
-      offsetY: 0,
+      offsetY: -rectHeight / 2 + 50,
+      align: 'center',
     });
 
     const gasFeeText = new Konva.Text({
       text: `Gas Fee: ${this.weiFormat(gasFee)} ETH`,
       fontSize: 12,
       fill: 'black',
-      offsetY: 10,
+      offsetY: -rectHeight / 2 + 70,
+      align: 'center',
     });
 
-      // Calculate random X and Y coordinates within the canvas boundaries
-  const x = Math.random() * (stageWidth - 100); // Adjust the range and offset as needed
-  const y = Math.random() * (stageHeight - 100); // Adjust the range and offset as needed
+    this.group.add(rect, fromText, toText, amountText, gasFeeText);
 
-  this.group.position({ x, y });
-  this.group.add(fromText, toText, amountText, gasFeeText);
+    // Calculate random X and Y coordinates within the canvas boundaries
+    const x = Math.random() * (stageWidth - rectWidth);
+    const y = Math.random() * (stageHeight - rectHeight);
+
+    this.group.position({ x, y });
 
     return this;
   }
