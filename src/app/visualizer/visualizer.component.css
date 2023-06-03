@@ -1,0 +1,50 @@
+.container {
+  position: fixed;
+  top: 5px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1; /* Ensure the container is above the canvas */
+}
+
+.canvas-container {
+  position: relative; /* Make the container position relative */
+  width: 100%; /* Set the width and height to 100% */
+  height: 100%;
+  overflow: hidden; /* Hide overflow to prevent scrollbars */
+}
+
+.canvas-container::before {
+  content: "";
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'%3E%3Cpath d='M10 0L0 0 0 10' fill='none' stroke='%23000000' stroke-width='0.5'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-position: 50% 50%;
+  pointer-events: none; /* Make the grid background ignore mouse events */
+}
+
+.input-field {
+  width: 400px;
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+.visualize-button {
+  padding: 8px 16px;
+  background-color: #3490dc;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+  margin-left: 8px;
+}
+
+.visualize-button:hover {
+  background-color: #2779bd;
+}
