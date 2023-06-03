@@ -149,8 +149,22 @@ export class VisualizerComponent implements OnInit {
       const nodes = transactionHistory.map((transaction: any) => {
         const node = new Node();
         node.create(transaction.from, transaction.to, transaction.value, transaction.gas);
+        node.enableDragDrop();
+
+
+        node.getGroup().on('dragstart', () => {
+          this.stage.draggable(false); // Pause canvas panning when node dragging starts
+        });
+
+        node.getGroup().on('dragend', () => {
+          this.stage.draggable(true); // Resume canvas panning when node dragging ends
+        });
+
+
         return node.getGroup();
       });
+
+
 
       this.layer.add(...nodes);
       this.stage.batchDraw();

@@ -13,7 +13,7 @@ export class Node {
   private group: Konva.Group;
 
   constructor() {
-    this.group = new Konva.Group();
+    this.group = new Konva.Group({draggable:true});
 
     // ... rest of the code
   }
@@ -47,6 +47,7 @@ export class Node {
       shadowBlur: 5,
       shadowOffset: { x: 0, y: 2 },
       shadowOpacity: 0.7,
+
     });
 
     const fromText = new Konva.Text({
@@ -94,5 +95,11 @@ export class Node {
 
   getGroup(): Konva.Group {
     return this.group;
+  }
+
+  enableDragDrop() {
+    this.group.on('dragstart', () => {
+      this.group.moveToTop(); // Move the node to the top when dragging starts
+    });
   }
 }
