@@ -10,13 +10,9 @@ import Konva from 'konva';
   ]
 })
 export class Node {
-  private group: Konva.Group;
+  private group!: Konva.Group;
 
-  constructor() {
-    this.group = new Konva.Group({draggable:true});
-
-    // ... rest of the code
-  }
+  constructor() {}
 
   weiFormat(amount: string): string {
     const amountInWei = parseInt(amount);
@@ -34,6 +30,8 @@ export class Node {
     const rectHeight = 80;
     const rectRadius = 10;
 
+    const group = new Konva.Group({ draggable: true });
+
     const rect = new Konva.Rect({
       x: -rectWidth / 2,
       y: -rectHeight / 2,
@@ -47,7 +45,6 @@ export class Node {
       shadowBlur: 5,
       shadowOffset: { x: 0, y: 2 },
       shadowOpacity: 0.7,
-
     });
 
     const fromText = new Konva.Text({
@@ -82,13 +79,29 @@ export class Node {
       align: 'center',
     });
 
-    this.group.add(rect, fromText, toText, amountText, gasFeeText);
+    // Add event listeners for dragging
+    rect.on('dragstart', () => {
+      group.setDraggable(false); // Disable group dragging during rectangle dragging
+    });
+
+    rect.on('dragend', () => {
+      group.setDraggable(true); // Enable group dragging after rectangle dragging ends
+    });
+
+    rect.on('dragmove', (event) => {
+      const pos = event.target.getPosition();
+      group.setPosition(pos);
+    });
+
+    group.add(rect, fromText, toText, amountText, gasFeeText);
 
     // Calculate random X and Y coordinates within the canvas boundaries
     const x = Math.random() * (stageWidth - rectWidth);
     const y = Math.random() * (stageHeight - rectHeight);
 
-    this.group.position({ x, y });
+    group.position({ x, y });
+
+    this.group = group;
 
     return this;
   }

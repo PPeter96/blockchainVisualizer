@@ -15,6 +15,7 @@ export class VisualizerComponent implements OnInit {
   private layer: any;
   private stageWidth: number = 0;
   private stageHeight: number = 0;
+  private initialClickPos: { x: number; y: number } | null = null;
 
   constructor() {
     this.konva = Konva;
@@ -26,62 +27,36 @@ export class VisualizerComponent implements OnInit {
     this.stage = new this.konva.Stage({
       container: 'container',
       width: this.stageWidth,
-      height: this.stageHeight
+      height: this.stageHeight,
+      draggable: true // Enable stage panning
     });
 
-      // Initialize the layer
+    // Initialize the layer
     this.layer = new this.konva.Layer();
     this.stage.add(this.layer);
 
-    if (!this.stage) {
-      return;
-    }
+    this.stage.on('dragstart', () => {
+      this.initialClickPos = this.stage.getPointerPosition();
+    });
 
-    // Track the initial click position
-    let initialClickPos: { x: number, y: number } | null = null;
+    this.stage.on('dragmove', () => {
+      const currentPos = this.stage.getPointerPosition();
+      if (currentPos && this.initialClickPos) {
+        const dx = currentPos.x - this.initialClickPos.x;
+        const dy = currentPos.y - this.initialClickPos.y;
 
-    // Handle panning
-    this.stage.on('mousedown', (e: any) => {
-      // Check if left mouse button is pressed
-      if (e.evt.button === 0) {
-        initialClickPos = this.stage.getPointerPosition();
+        const newX = this.stage.x() + dx;
+        const newY = this.stage.y() + dy;
+
+        this.stage.position({ x: newX, y: newY });
+        this.stage.batchDraw();
+
+        this.initialClickPos = currentPos; // Update the initial click position
       }
     });
 
-    this.stage.on('mouseup', () => {
-      if (initialClickPos) {
-        const currentPos = this.stage.getPointerPosition();
-        if (currentPos) {
-          const dx = currentPos.x - initialClickPos.x;
-          const dy = currentPos.y - initialClickPos.y;
-
-          const newX = this.stage.x() + dx;
-          const newY = this.stage.y() + dy;
-
-          this.stage.position({ x: newX, y: newY });
-          this.stage.batchDraw();
-        }
-      }
-
-      initialClickPos = null;
-    });
-
-    this.stage.on('mousemove', (e: any) => {
-      if (initialClickPos) {
-        const currentPos = this.stage.getPointerPosition();
-        if (currentPos) {
-          const dx = currentPos.x - initialClickPos.x;
-          const dy = currentPos.y - initialClickPos.y;
-
-          const newX = this.stage.x() + dx;
-          const newY = this.stage.y() + dy;
-
-          this.stage.position({ x: newX, y: newY });
-          this.stage.batchDraw();
-
-          initialClickPos = currentPos; // Update the initial click position
-        }
-      }
+    this.stage.on('dragend', () => {
+      this.initialClickPos = null;
     });
 
     // Handle zooming
@@ -90,9 +65,8 @@ export class VisualizerComponent implements OnInit {
       e.evt.preventDefault();
       const oldScale = this.stage.scaleX();
       const newScale = e.evt.deltaY > 0 ? oldScale / scaleBy : oldScale * scaleBy;
-      this.stage.scale({ x: newScale, y: newScale });
 
-      // Adjust stage position to keep the zoom centered
+      // Calculate the new stage position after zooming
       const pointer = this.stage.getPointerPosition();
       if (pointer) {
         const mousePointTo = {
@@ -101,13 +75,13 @@ export class VisualizerComponent implements OnInit {
         };
         const newX = pointer.x - mousePointTo.x * newScale;
         const newY = pointer.y - mousePointTo.y * newScale;
-        this.stage.position({ x: newX, y: newY });
-      }
 
-      this.stage.batchDraw();
+        this.stage.scale({ x: newScale, y: newScale });
+        this.stage.position({ x: newX, y: newY });
+        this.stage.batchDraw();
+      }
     });
   }
-
 
   @HostListener('window:resize')
   onWindowResize() {
@@ -116,7 +90,6 @@ export class VisualizerComponent implements OnInit {
     if (stage) {
       stage.width(this.stageWidth);
       stage.height(this.stageHeight);
-      stage.position({ x: 0, y: 0 }); // Reset the stage position
       stage.batchDraw();
     }
   }
@@ -151,20 +124,33 @@ export class VisualizerComponent implements OnInit {
         node.create(transaction.from, transaction.to, transaction.value, transaction.gas);
         node.enableDragDrop();
 
+        const group = node.getGroup();
+        group.draggable(true); // Enable individual node dragging
 
-        node.getGroup().on('dragstart', () => {
-          this.stage.draggable(false); // Pause canvas panning when node dragging starts
+        group.on('dragstart', (e: any) => {
+          e.cancelBubble = true; // Prevent event propagation to the stage
+          group.moveToTop(); // Move the dragged node to the top of the layer
         });
 
-        node.getGroup().on('dragend', () => {
-          this.stage.draggable(true); // Resume canvas panning when node dragging ends
+        group.on('dragmove', (e: any) => {
+          e.cancelBubble = true; // Prevent event propagation to the stage
+          const pointerPos = this.stage.getPointerPosition();
+          if (pointerPos) {
+            const stagePos = this.stage.position();
+            const scale = this.stage.scaleX();
+            const newX = (pointerPos.x - stagePos.x) / scale - group.width() / 2;
+            const newY = (pointerPos.y - stagePos.y) / scale - group.height() / 2;
+            group.position({ x: newX, y: newY });
+            this.stage.batchDraw();
+          }
         });
 
+        group.on('dragend', (e: any) => {
+          e.cancelBubble = true; // Prevent event propagation to the stage
+        });
 
-        return node.getGroup();
+        return group;
       });
-
-
 
       this.layer.add(...nodes);
       this.stage.batchDraw();
