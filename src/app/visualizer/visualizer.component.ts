@@ -13,6 +13,7 @@ export class VisualizerComponent implements OnInit {
   private konva: any;
   private stage: any;
   private layer: any;
+  private overlayLayer: any;
   private stageWidth: number = 0;
   private stageHeight: number = 0;
   private initialClickPos: { x: number; y: number } | null = null;
@@ -33,11 +34,19 @@ export class VisualizerComponent implements OnInit {
 
     // Initialize the layer
     this.layer = new this.konva.Layer();
+    this.overlayLayer = new this.konva.Layer();
+    this.stage.add(this.overlayLayer);
     this.stage.add(this.layer);
 
+
+    /*
     this.stage.on('dragstart', () => {
       this.initialClickPos = this.stage.getPointerPosition();
     });
+    */
+
+
+
 
     this.stage.on('dragmove', () => {
       const currentPos = this.stage.getPointerPosition();
@@ -81,6 +90,8 @@ export class VisualizerComponent implements OnInit {
         this.stage.batchDraw();
       }
     });
+
+    this.addOverlayIndicators();
   }
 
   @HostListener('window:resize')
@@ -103,6 +114,87 @@ export class VisualizerComponent implements OnInit {
       container.style.height = `${this.stageHeight}px`;
     }
   }
+
+
+  addOverlayIndicators() {
+    // X-axis indicator
+    const xAxis = new this.konva.Line({
+      points: [-this.stageWidth * 10, 0, this.stageWidth * 10, 0],
+      stroke: 'red',
+      strokeWidth: 1,
+      lineCap: 'round',
+      lineJoin: 'round',
+      dash: [4, 4]
+    });
+
+    // Y-axis indicator
+    const yAxis = new this.konva.Line({
+      points: [0, -this.stageHeight * 10, 0, this.stageHeight * 10],
+      stroke: 'blue',
+      strokeWidth: 1,
+      lineCap: 'round',
+      lineJoin: 'round',
+      dash: [4, 4]
+    });
+
+    // Update position of the indicator lines when panning and zooming
+    const updateIndicatorLines = () => {
+      const stagePos = this.stage.position();
+      const scale = this.stage.scaleX();
+      const newX = stagePos.x - (this.stageWidth / 2) * (1 / scale);
+      const newY = stagePos.y - (this.stageHeight / 2) * (1 / scale);
+      const lineLength = this.stageWidth * 10 * (1 / scale); // Adjust line length based on scale
+      xAxis.points([-lineLength, 0, lineLength, 0]);
+      yAxis.points([0, -lineLength, 0, lineLength]);
+      xAxis.position({ x: newX });
+      yAxis.position({ y: newY });
+      this.overlayLayer.batchDraw();
+    };
+
+    this.stage.on('dragmove', updateIndicatorLines);
+    this.stage.on('scaleChange', updateIndicatorLines);
+
+    this.overlayLayer.add(xAxis, yAxis);
+    this.stage.batchDraw();
+
+
+  // Update scale indicator on zoom changes
+  this.stage.on('scaleChange', () => {
+    const scale = this.stage.scaleX();
+    let cappedScale = scale;
+
+    // Apply minimum and maximum caps
+    cappedScale = Math.max(0.1, Math.min(7.5, cappedScale));
+
+    // Set the capped scale for both X and Y axes
+    this.stage.scale({ x: cappedScale, y: cappedScale });
+
+    // Update the position of the stage to keep the center of the viewport fixed
+    const pointer = this.stage.getPointerPosition();
+    if (pointer) {
+      const oldPosition = {
+        x: (pointer.x - this.stage.x()) / scale,
+        y: (pointer.y - this.stage.y()) / scale
+      };
+      const newPosition = {
+        x: pointer.x - oldPosition.x * cappedScale,
+        y: pointer.y - oldPosition.y * cappedScale
+      };
+      this.stage.position(newPosition);
+    }
+
+  });
+
+    // Center the stage to the viewport
+    const stagePos = this.stage.position();
+    const newX = this.stageWidth / 2 - stagePos.x;
+    const newY = this.stageHeight / 2 - stagePos.y;
+    this.stage.position({ x: newX, y: newY });
+    this.stage.batchDraw();
+  }
+
+
+
 
   async visualizeTransactions(address: string) {
     address = this.address.trim();
@@ -130,20 +222,31 @@ export class VisualizerComponent implements OnInit {
         group.on('dragstart', (e: any) => {
           e.cancelBubble = true; // Prevent event propagation to the stage
           group.moveToTop(); // Move the dragged node to the top of the layer
+          const pointerPos = this.stage.getPointerPosition();
+          if (pointerPos) {
+            const stagePos = this.stage.position();
+            const scale = this.stage.scaleX();
+            const offsetX = (pointerPos.x - stagePos.x) / scale - group.x();
+            const offsetY = (pointerPos.y - stagePos.y) / scale - group.y();
+            group.setAttr('dragOffset', { offsetX, offsetY });
+          }
         });
 
         group.on('dragmove', (e: any) => {
           e.cancelBubble = true; // Prevent event propagation to the stage
           const pointerPos = this.stage.getPointerPosition();
-          if (pointerPos) {
+          const dragOffset = group.getAttr('dragOffset');
+          if (pointerPos && dragOffset) {
             const stagePos = this.stage.position();
             const scale = this.stage.scaleX();
-            const newX = (pointerPos.x - stagePos.x) / scale - group.width() / 2;
-            const newY = (pointerPos.y - stagePos.y) / scale - group.height() / 2;
+            const newX = (pointerPos.x - stagePos.x) / scale - dragOffset.offsetX;
+            const newY = (pointerPos.y - stagePos.y) / scale - dragOffset.offsetY;
             group.position({ x: newX, y: newY });
             this.stage.batchDraw();
           }
         });
+
+
 
         group.on('dragend', (e: any) => {
           e.cancelBubble = true; // Prevent event propagation to the stage

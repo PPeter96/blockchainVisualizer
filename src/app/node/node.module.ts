@@ -1,14 +1,5 @@
-import { NgModule } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import Konva from 'konva';
 
-@NgModule({
-  declarations: [],
-  imports: [CommonModule],
-  providers: [
-    { provide: 'Konva', useValue: Konva } // Provide Konva as a value for dependency injection
-  ]
-})
 export class Node {
   private group!: Konva.Group;
 
@@ -25,10 +16,24 @@ export class Node {
   create(from: string, to: string, amount: string, gasFee: string): Node {
     const stageWidth = window.innerWidth;
     const stageHeight = window.innerHeight;
+    const rectPadding = 5; // Set the desired padding for the text within the rectangle
 
-    const rectWidth = 160;
-    const rectHeight = 80;
-    const rectRadius = 10;
+    const textContent = `From: ${from}\nTo: ${to}\nAmount: ${this.weiFormat(amount)} ETH\nGas Fee: ${this.weiFormat(gasFee)} ETH`;
+
+    // Create a temporary text node to measure dimensions
+    const tempText = new Konva.Text({
+      fontSize: 12,
+      lineHeight: 1.2,
+      text: textContent,
+    });
+
+    const textWidth = tempText.getWidth();
+    const textHeight = tempText.getHeight();
+
+    tempText.destroy(); // Clean up temporary text node
+
+    const rectWidth = textWidth + 2 * rectPadding;
+    const rectHeight = textHeight + 2 * rectPadding;
 
     const group = new Konva.Group({ draggable: true });
 
@@ -39,44 +44,23 @@ export class Node {
       height: rectHeight,
       fill: 'white',
       stroke: 'black',
-      strokeWidth: 1,
-      cornerRadius: rectRadius,
+      strokeWidth: 0.5,
+      cornerRadius: 5,
       shadowColor: 'rgba(0, 0, 0, 0.3)',
       shadowBlur: 5,
       shadowOffset: { x: 0, y: 2 },
       shadowOpacity: 0.7,
     });
 
-    const fromText = new Konva.Text({
-      text: `From: ${from}`,
+    const text = new Konva.Text({
+      x: -rectWidth / 2 + rectPadding,
+      y: -rectHeight / 2 + rectPadding,
       fontSize: 12,
       fill: 'black',
-      offsetY: -rectHeight / 2 + 10,
-      align: 'center',
-    });
-
-    const toText = new Konva.Text({
-      text: `To: ${to}`,
-      fontSize: 12,
-      fill: 'black',
-      offsetY: -rectHeight / 2 + 30,
-      align: 'center',
-    });
-
-    const amountText = new Konva.Text({
-      text: `Amount: ${this.weiFormat(amount)} ETH`,
-      fontSize: 12,
-      fill: 'black',
-      offsetY: -rectHeight / 2 + 50,
-      align: 'center',
-    });
-
-    const gasFeeText = new Konva.Text({
-      text: `Gas Fee: ${this.weiFormat(gasFee)} ETH`,
-      fontSize: 12,
-      fill: 'black',
-      offsetY: -rectHeight / 2 + 70,
-      align: 'center',
+      width: rectWidth - 2 * rectPadding,
+      align: 'left',
+      lineHeight: 1.2,
+      text: textContent,
     });
 
     // Add event listeners for dragging
@@ -93,7 +77,7 @@ export class Node {
       group.setPosition(pos);
     });
 
-    group.add(rect, fromText, toText, amountText, gasFeeText);
+    group.add(rect, text);
 
     // Calculate random X and Y coordinates within the canvas boundaries
     const x = Math.random() * (stageWidth - rectWidth);
